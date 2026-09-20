@@ -20,21 +20,40 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-          cache: gradle
 
-      - name: Set up Gradle 8.9
+      - name: Extract Pudge Rider project
+        run: |
+          mkdir -p project
+
+          if [ -f "PudgeRiderBot_v3_GitHub.zip" ]; then
+            unzip -q "PudgeRiderBot_v3_GitHub.zip" -d project
+          elif [ -f "PudgeRiderBot_v2.zip" ]; then
+            unzip -q "PudgeRiderBot_v2.zip" -d project
+          else
+            echo "ERROR: Pudge Rider ZIP not found"
+            ls -la
+            exit 1
+          fi
+
+          echo "Project contents:"
+          find project -maxdepth 2 -type f | sort
+
+      - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
 
-      - name: Check project files
+      - name: Build APK
+        working-directory: project
         run: |
-          test -f build.gradle.kts
-          test -f settings.gradle.kts
-          test -f app/build.gradle.kts
-          echo "Project files found"
-          gradle --version
+          gradle --no-daemon --stacktrace clean assembleDebug
 
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: PudgeRiderBot-debug-apk
+          path: project/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
       - name: Build debug APK
         run: gradle --no-daemon --stacktrace clean assembleDebug
 
